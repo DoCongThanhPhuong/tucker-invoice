@@ -1,17 +1,21 @@
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {BrowserProvider, Contract, formatEther, formatUnits, isAddress, JsonRpcProvider, parseUnits} from "ethers";
+import QRCode from "qrcode";
 import {
   ERC20_ABI,
   EXPLORER_URL,
   INVOICE_MANAGER_ABI,
   INVOICE_MANAGER_ADDRESS,
+  INVOICE_MANAGER_DEPLOYMENT_BLOCK,
   PHAROS_CHAIN_HEX,
   PHAROS_CHAIN_ID,
   PHAROS_RPC_URL,
   TBT_ADDRESS,
 } from "./contracts.js";
+import {invoiceIdFromPath, invoicePath, uniqueInvoiceIds} from "./invoice-utils.js";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const EVENT_BLOCK_RANGE = 1000;
 
 function shortAddress(address) {
   return address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Not connected";
@@ -19,6 +23,15 @@ function shortAddress(address) {
 
 function errorMessage(error) {
   return error?.shortMessage || error?.reason || error?.info?.error?.message || error?.message || "Something went wrong";
+}
+
+async function queryFilterInRanges(contract, filter, fromBlock, toBlock) {
+  const events = [];
+  for (let start = fromBlock; start <= toBlock; start += EVENT_BLOCK_RANGE) {
+    const end = Math.min(start + EVENT_BLOCK_RANGE - 1, toBlock);
+    events.push(...await contract.queryFilter(filter, start, end));
+  }
+  return events;
 }
 
 function App() {
@@ -30,14 +43,27 @@ function App() {
   const [nextInvoiceId, setNextInvoiceId] = useState("—");
   const [payer, setPayer] = useState("");
   const [amount, setAmount] = useState("10");
-  const [invoiceSearch, setInvoiceSearch] = useState("0");
+  const sharedInvoiceId = useMemo(() => invoiceIdFromPath(window.location.pathname), []);
+  const [invoiceSearch, setInvoiceSearch] = useState(sharedInvoiceId ?? "0");
   const [invoice, setInvoice] = useState(null);
   const [allowance, setAllowance] = useState(0n);
+  const [myInvoices, setMyInvoices] = useState([]);
+  const [myInvoicesBusy, setMyInvoicesBusy] = useState(false);
+  const [myInvoicesError, setMyInvoicesError] = useState("");
+  const [invoiceFilter, setInvoiceFilter] = useState("all");
+  const [showShare, setShowShare] = useState(Boolean(sharedInvoiceId));
+  const [qrCode, setQrCode] = useState("");
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState(null);
 
   const onCorrectChain = chainId === PHAROS_CHAIN_ID;
   const maskNetworkData = !account || !onCorrectChain;
+  const shareUrl = invoice ? `${window.location.origin}${invoicePath(invoice.id)}` : "";
+  const filteredInvoices = myInvoices.filter((item) => {
+    if (invoiceFilter === "merchant") return item.merchant.toLowerCase() === account.toLowerCase();
+    if (invoiceFilter === "payer") return item.payer.toLowerCase() === account.toLowerCase();
+    return true;
+  });
 
   const getSigner = useCallback(async () => {
     if (!window.ethereum) throw new Error("MetaMask is not installed");
@@ -58,6 +84,49 @@ function App() {
       ]);
       setNativeBalance(Number(formatEther(phrs)).toFixed(4));
       setTokenBalance(Number(formatUnits(tbt, decimals)).toLocaleString(undefined, {maximumFractionDigits: 4}));
+    }
+  }, [account, readProvider]);
+
+  const loadMyInvoices = useCallback(async (walletAddress = account) => {
+    if (!walletAddress) {
+      setMyInvoices([]);
+      return;
+    }
+    try {
+      setMyInvoicesBusy(true);
+      setMyInvoicesError("");
+      const manager = new Contract(INVOICE_MANAGER_ADDRESS, INVOICE_MANAGER_ABI, readProvider);
+      const latestBlock = await readProvider.getBlockNumber();
+      const [created, payable] = await Promise.all([
+        queryFilterInRanges(
+          manager,
+          manager.filters.InvoiceCreated(null, walletAddress, null),
+          INVOICE_MANAGER_DEPLOYMENT_BLOCK,
+          latestBlock,
+        ),
+        queryFilterInRanges(
+          manager,
+          manager.filters.InvoiceCreated(null, null, walletAddress),
+          INVOICE_MANAGER_DEPLOYMENT_BLOCK,
+          latestBlock,
+        ),
+      ]);
+      const ids = uniqueInvoiceIds([...created, ...payable]);
+      const items = await Promise.all(ids.map(async (id) => {
+        const data = await manager.invoices(id);
+        return {
+          id,
+          merchant: data.merchant,
+          payer: data.payer,
+          amount: data.amount,
+          status: Number(data.status),
+        };
+      }));
+      setMyInvoices(items.sort((left, right) => Number(right.id) - Number(left.id)));
+    } catch (error) {
+      setMyInvoicesError(errorMessage(error));
+    } finally {
+      setMyInvoicesBusy(false);
     }
   }, [account, readProvider]);
 
@@ -121,7 +190,7 @@ function App() {
       const createdId = createdLog?.args.invoiceId?.toString();
       if (createdId !== undefined) setInvoiceSearch(createdId);
       setNotice({type: "success", text: `Invoice #${createdId ?? ""} created`, hash: tx.hash});
-      await refreshDashboard(account);
+      await Promise.all([refreshDashboard(account), loadMyInvoices(account)]);
     } catch (error) {
       setNotice({type: "error", text: errorMessage(error)});
     } finally {
@@ -129,17 +198,17 @@ function App() {
     }
   };
 
-  const loadInvoice = useCallback(async (event) => {
+  const loadInvoice = useCallback(async (event, requestedId = invoiceSearch) => {
     event?.preventDefault();
     try {
       setBusy("load");
       const manager = new Contract(INVOICE_MANAGER_ADDRESS, INVOICE_MANAGER_ABI, readProvider);
       const token = new Contract(TBT_ADDRESS, ERC20_ABI, readProvider);
-      const data = await manager.invoices(invoiceSearch);
+      const data = await manager.invoices(requestedId);
       if (data.merchant === ZERO_ADDRESS) throw new Error("Invoice does not exist");
       const currentAllowance = await token.allowance(data.payer, INVOICE_MANAGER_ADDRESS);
       setInvoice({
-        id: invoiceSearch,
+        id: requestedId,
         merchant: data.merchant,
         payer: data.payer,
         amount: data.amount,
@@ -153,6 +222,23 @@ function App() {
       setBusy("");
     }
   }, [invoiceSearch, readProvider]);
+
+  const openInvoice = useCallback(async (invoiceId, updateHistory = true) => {
+    setInvoiceSearch(invoiceId);
+    setShowShare(false);
+    if (updateHistory) window.history.pushState({}, "", invoicePath(invoiceId));
+    await loadInvoice(null, invoiceId);
+    document.querySelector(".settle-panel")?.scrollIntoView({behavior: "smooth", block: "center"});
+  }, [loadInvoice]);
+
+  const copyInvoiceLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setNotice({type: "success", text: "Invoice link copied"});
+    } catch {
+      setNotice({type: "error", text: "Could not copy the invoice link"});
+    }
+  };
 
   const approveInvoice = async () => {
     try {
@@ -180,7 +266,7 @@ function App() {
       setNotice({type: "pending", text: `Paying invoice #${invoice.id}…`, hash: tx.hash});
       await tx.wait();
       setNotice({type: "success", text: `Invoice #${invoice.id} paid`, hash: tx.hash});
-      await Promise.all([loadInvoice(), refreshDashboard(account)]);
+      await Promise.all([loadInvoice(), refreshDashboard(account), loadMyInvoices(account)]);
     } catch (error) {
       setNotice({type: "error", text: errorMessage(error)});
     } finally {
@@ -189,11 +275,32 @@ function App() {
   };
 
   useEffect(() => {
+    if (!shareUrl || !showShare) {
+      setQrCode("");
+      return undefined;
+    }
+    let active = true;
+    QRCode.toDataURL(shareUrl, {
+      width: 220,
+      margin: 1,
+      color: {dark: "#11130f", light: "#f1f0e9"},
+    })
+      .then((value) => { if (active) setQrCode(value); })
+      .catch(() => { if (active) setNotice({type: "error", text: "Could not create QR code"}); });
+    return () => { active = false; };
+  }, [shareUrl, showShare]);
+
+  useEffect(() => {
     refreshDashboard().catch(() => setNextInvoiceId("—"));
     if (!window.ethereum) return undefined;
     const handleAccounts = (accounts) => {
       setAccount(accounts[0] || "");
-      if (accounts[0]) refreshDashboard(accounts[0]);
+      if (accounts[0]) {
+        refreshDashboard(accounts[0]);
+        loadMyInvoices(accounts[0]);
+      } else {
+        setMyInvoices([]);
+      }
     };
     const handleChain = (value) => setChainId(Number(value));
     window.ethereum.on("accountsChanged", handleAccounts);
@@ -204,7 +311,20 @@ function App() {
       window.ethereum.removeListener("accountsChanged", handleAccounts);
       window.ethereum.removeListener("chainChanged", handleChain);
     };
-  }, [refreshDashboard]);
+  }, [loadMyInvoices, refreshDashboard]);
+
+  useEffect(() => {
+    if (sharedInvoiceId) loadInvoice(null, sharedInvoiceId);
+  }, [loadInvoice, sharedInvoiceId]);
+
+  useEffect(() => {
+    const handleNavigation = () => {
+      const invoiceId = invoiceIdFromPath(window.location.pathname);
+      if (invoiceId) openInvoice(invoiceId, false);
+    };
+    window.addEventListener("popstate", handleNavigation);
+    return () => window.removeEventListener("popstate", handleNavigation);
+  }, [openInvoice]);
 
   useEffect(() => {
     if (!notice || notice.type === "pending") return undefined;
@@ -295,6 +415,16 @@ function App() {
                   <div className="invoice-top"><span>Invoice #{invoice.id}</span><b className={invoice.status === 1 ? "paid" : "open"}>{invoice.status === 1 ? "Paid" : "Open"}</b></div>
                   <strong className="invoice-amount">{formatUnits(invoice.amount, 18)} <small>TBT</small></strong>
                   <dl><div><dt>Merchant</dt><dd title={invoice.merchant}>{shortAddress(invoice.merchant)}</dd></div><div><dt>Payer</dt><dd title={invoice.payer}>{shortAddress(invoice.payer)}</dd></div></dl>
+                  <div className="share-actions">
+                    <button className="tertiary" type="button" onClick={copyInvoiceLink}>Copy link</button>
+                    <button className="tertiary" type="button" onClick={() => setShowShare((value) => !value)}>{showShare ? "Hide QR" : "Show QR"}</button>
+                  </div>
+                  {showShare ? (
+                    <div className="share-card">
+                      {qrCode ? <img src={qrCode} alt={`QR code for invoice ${invoice.id}`} /> : <span>Creating QR…</span>}
+                      <div><strong>Scan to open invoice #{invoice.id}</strong><p>{shareUrl}</p></div>
+                    </div>
+                  ) : null}
                   {invoice.status === 0 && isPayer ? (
                     needsApproval ? <button className="secondary full" onClick={approveInvoice} disabled={busy === "approve"}>{busy === "approve" ? "Approving…" : `Approve ${formatUnits(invoice.amount, 18)} TBT`}</button>
                       : <button className="primary full" onClick={payInvoice} disabled={busy === "pay"}>{busy === "pay" ? "Paying…" : "Pay invoice"}<span>→</span></button>
@@ -305,6 +435,33 @@ function App() {
             </article>
           </div>
         )}
+
+        {account && onCorrectChain ? (
+          <section className="invoice-library" aria-labelledby="my-invoices-title">
+            <div className="library-header">
+              <div><p className="eyebrow">On-chain activity</p><h3 id="my-invoices-title">My invoices</h3></div>
+              <button className="secondary compact" type="button" onClick={() => loadMyInvoices(account)} disabled={myInvoicesBusy}>{myInvoicesBusy ? "Refreshing…" : "Refresh"}</button>
+            </div>
+            <div className="filter-tabs" role="group" aria-label="Filter invoices">
+              {[["all", "All"], ["merchant", "Created by me"], ["payer", "Payable by me"]].map(([value, label]) => (
+                <button key={value} className={invoiceFilter === value ? "active" : ""} type="button" onClick={() => setInvoiceFilter(value)}>{label}</button>
+              ))}
+            </div>
+            {myInvoicesError ? <p className="library-message error-text">Could not load invoices: {myInvoicesError}</p> : null}
+            {!myInvoicesError && !myInvoicesBusy && filteredInvoices.length === 0 ? <p className="library-message">No invoices match this filter yet.</p> : null}
+            <div className="invoice-list">
+              {filteredInvoices.map((item) => (
+                <button key={item.id} className="invoice-row" type="button" onClick={() => openInvoice(item.id)}>
+                  <span><small>Invoice</small>#{item.id}</span>
+                  <span><small>Amount</small>{formatUnits(item.amount, 18)} TBT</span>
+                  <span><small>Role</small>{item.merchant.toLowerCase() === account.toLowerCase() ? "Merchant" : "Payer"}</span>
+                  <b className={item.status === 1 ? "paid" : "open"}>{item.status === 1 ? "Paid" : "Open"}</b>
+                  <i>↗</i>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </section>
 
       <footer className="shell">

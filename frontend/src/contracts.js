@@ -8,6 +8,7 @@ export const TBT_ADDRESS =
   import.meta.env.VITE_TBT_ADDRESS || "0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5";
 export const INVOICE_MANAGER_ADDRESS =
   import.meta.env.VITE_INVOICE_MANAGER_ADDRESS || "0x5a95783b6f19841E79c4Bb506981310661a4cc7d";
+export const INVOICE_MANAGER_DEPLOYMENT_BLOCK = 27782740;
 
 export const INVOICE_MANAGER_ABI = [
   "function createInvoice(address payer, uint256 amount) returns (uint256 invoiceId)",
