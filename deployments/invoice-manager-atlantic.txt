@@ -1,0 +1,8 @@
+Network: Pharos Atlantic Testnet
+Chain ID: 688689
+Deployer: 0x5Fb3ba83357bb9DA1571a06f8937658362A5504a
+Contract: 0x5a95783b6f19841E79c4Bb506981310661a4cc7d
+Contract Name: InvoiceManager
+Payment Token: 0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5
+Deployment Tx: 0xebbb457e942b833bfbd681382bc3ab6191147901686e9a1daec45b0763698fa8
+Verified: yes

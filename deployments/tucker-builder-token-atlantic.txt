@@ -1,0 +1,11 @@
+Network: Pharos Atlantic Testnet
+Chain ID: 688689
+Deployer: 0x5Fb3ba83357bb9DA1571a06f8937658362A5504a
+Contract: 0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5
+Contract Name: TuckerBuilderToken
+Token Name: Tucker Builder Token
+Symbol: TBT
+Verified: yes
+Transfer Receiver: 0xC462FE75675E0fD20B44239B5cA1D00fEf4deC56
+Transfer Amount: 100 TBT
+Transfer Tx: 0x1292b4e4bd89460ee7c6058e779e3c023c1e67582296398dd00f24b530ba911b

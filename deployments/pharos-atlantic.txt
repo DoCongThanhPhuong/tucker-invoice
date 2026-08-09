@@ -1,0 +1,6 @@
+Network: Pharos Atlantic Testnet
+Chain ID: 688689
+Deployer: 0x5Fb3ba83357bb9DA1571a06f8937658362A5504a
+Contract: 0x26B9CFAD5CfFfC3A383a8010249d78859d3d24Ea
+Contract Name: Counter
+Verified: yes
