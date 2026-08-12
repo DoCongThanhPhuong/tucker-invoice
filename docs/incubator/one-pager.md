@@ -23,8 +23,8 @@ Tucker Invoice V2 introduces on-chain verifiable settlement with zero PII exposu
 > [!NOTE]
 > **Current Testnet Facts (Pharos Atlantic - Chain ID 688689)**
 > - **InvoiceManager V1 (Verified)**: `0x5a95783b6f19841E79c4Bb506981310661a4cc7d`
+> - **InvoiceManagerV2 (Live Testnet)**: `0xB4f7A4dA6eD75033E25231bd43D9A207797391f6`
 > - **Tucker Builder Token (TBT ERC-20)**: `0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5`
-> - **InvoiceManagerV2 (Not deployed)**: Implemented locally with unit and fuzz tests, multi-token allowlists, due-date expiration, and custom error handling. It will be deployed only after an approved testnet dry run and broadcast.
 
 > [!IMPORTANT]
 > **Future Targets & Testnet Architecture**

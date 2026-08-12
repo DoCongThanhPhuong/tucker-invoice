@@ -13,6 +13,7 @@ out/
 
 # Docs
 docs/
+!docs/incubator/
 
 # Dotenv file
 .env

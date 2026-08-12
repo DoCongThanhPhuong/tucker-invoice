@@ -8,6 +8,7 @@
 | Component | Network | Contract Address / Status | Explorer Link |
 | :--- | :--- | :--- | :--- |
 | **InvoiceManager V1** | Pharos Atlantic | `0x5a95783b6f19841E79c4Bb506981310661a4cc7d` (Verified) | [View on PharosScan](https://atlantic.pharosscan.xyz/address/0x5a95783b6f19841E79c4Bb506981310661a4cc7d) |
+| **InvoiceManager V2** | Pharos Atlantic | `0xB4f7A4dA6eD75033E25231bd43D9A207797391f6` (Live Testnet) | [View on PharosScan](https://atlantic.pharosscan.xyz/address/0xB4f7A4dA6eD75033E25231bd43D9A207797391f6) |
 | **Tucker Builder Token (TBT)** | Pharos Atlantic | `0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5` (Verified) | [View on PharosScan](https://atlantic.pharosscan.xyz/address/0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5) |
 | **Counter Contract** | Pharos Atlantic | `0x26B9CFAD5CfFfC3A383a8010249d78859d3d24Ea` (Verified) | [View on PharosScan](https://atlantic.pharosscan.xyz/address/0x26B9CFAD5CfFfC3A383a8010249d78859d3d24Ea) |
 

@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **hello-foundry** (3201 symbols, 6086 relationships, 53 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **tucker-invoice** (3227 symbols, 6166 relationships, 64 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
@@ -25,10 +25,10 @@ This project is indexed by GitNexus as **hello-foundry** (3201 symbols, 6086 rel
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/hello-foundry/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/hello-foundry/clusters` | All functional areas |
-| `gitnexus://repo/hello-foundry/processes` | All execution flows |
-| `gitnexus://repo/hello-foundry/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/tucker-invoice/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/tucker-invoice/clusters` | All functional areas |
+| `gitnexus://repo/tucker-invoice/processes` | All execution flows |
+| `gitnexus://repo/tucker-invoice/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 

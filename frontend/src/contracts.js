@@ -11,8 +11,8 @@ export const INVOICE_MANAGER_ADDRESS =
 export const INVOICE_MANAGER_DEPLOYMENT_BLOCK = 27782740;
 
 export const INVOICE_MANAGER_V2_ADDRESS =
-  import.meta.env.VITE_INVOICE_MANAGER_V2_ADDRESS || "";
-export const INVOICE_MANAGER_V2_DEPLOYMENT_BLOCK = 27782740;
+  import.meta.env.VITE_INVOICE_MANAGER_V2_ADDRESS || "0xB4f7A4dA6eD75033E25231bd43D9A207797391f6";
+export const INVOICE_MANAGER_V2_DEPLOYMENT_BLOCK = 28053178;
 
 export const INVOICE_MANAGER_ABI = [
   "function createInvoice(address payer, uint256 amount) returns (uint256 invoiceId)",
