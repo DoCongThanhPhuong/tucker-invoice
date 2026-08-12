@@ -10,6 +10,10 @@ export const INVOICE_MANAGER_ADDRESS =
   import.meta.env.VITE_INVOICE_MANAGER_ADDRESS || "0x5a95783b6f19841E79c4Bb506981310661a4cc7d";
 export const INVOICE_MANAGER_DEPLOYMENT_BLOCK = 27782740;
 
+export const INVOICE_MANAGER_V2_ADDRESS =
+  import.meta.env.VITE_INVOICE_MANAGER_V2_ADDRESS || "";
+export const INVOICE_MANAGER_V2_DEPLOYMENT_BLOCK = 27782740;
+
 export const INVOICE_MANAGER_ABI = [
   "function createInvoice(address payer, uint256 amount) returns (uint256 invoiceId)",
   "function payInvoice(uint256 invoiceId)",
@@ -20,10 +24,33 @@ export const INVOICE_MANAGER_ABI = [
   "event InvoicePaid(uint256 indexed invoiceId, address indexed payer, uint256 amount)",
 ];
 
+export const INVOICE_MANAGER_V2_ABI = [
+  "function createInvoice(address payer, address paymentToken, uint256 amount, uint64 dueDate, bytes32 referenceHash) returns (uint256 invoiceId)",
+  "function payInvoice(uint256 invoiceId)",
+  "function cancelInvoice(uint256 invoiceId)",
+  "function invoices(uint256 invoiceId) view returns (address merchant, address payer, address paymentToken, uint256 amount, uint64 dueDate, bytes32 referenceHash, uint8 status)",
+  "function nextInvoiceId() view returns (uint256)",
+  "function supportedPaymentTokens(address token) view returns (bool)",
+  "event InvoiceCreated(uint256 indexed invoiceId, address indexed merchant, address indexed payer, address paymentToken, uint256 amount, uint64 dueDate, bytes32 referenceHash)",
+  "event InvoicePaid(uint256 indexed invoiceId, address indexed payer, address paymentToken, uint256 amount, uint64 paidAt)",
+  "event InvoiceCancelled(uint256 indexed invoiceId, address indexed merchant, uint64 cancelledAt)",
+  "event PaymentTokenSupportUpdated(address indexed token, bool indexed isSupported)",
+];
+
 export const ERC20_ABI = [
   "function balanceOf(address account) view returns (uint256)",
   "function allowance(address owner, address spender) view returns (uint256)",
   "function approve(address spender, uint256 value) returns (bool)",
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
+  "function name() view returns (string)",
+];
+
+export const DEFAULT_V2_TOKENS = [
+  {
+    symbol: "TBT",
+    name: "Tucker Builder Token",
+    address: TBT_ADDRESS,
+    decimals: 18,
+  },
 ];
