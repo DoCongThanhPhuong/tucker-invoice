@@ -55,11 +55,20 @@ export const ERC20_ABI = [
   "function name() view returns (string)",
 ];
 
+export const USDC_ADDRESS =
+  import.meta.env.VITE_USDC_ADDRESS || "0x91a487BfAC67b3CF39F51425f762510dCb196026";
+
 export const DEFAULT_V2_TOKENS = [
   {
     symbol: "TBT",
     name: "Tucker Builder Token",
     address: TBT_ADDRESS,
     decimals: 18,
+  },
+  {
+    symbol: "USDC",
+    name: "Mock USD Coin",
+    address: USDC_ADDRESS,
+    decimals: 6,
   },
 ];

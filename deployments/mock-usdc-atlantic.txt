@@ -1,0 +1,11 @@
+Network: Pharos Atlantic Testnet
+Chain ID: 688689
+Deployer: 0x5Fb3ba83357bb9DA1571a06f8937658362A5504a
+Contract: 0x91a487BfAC67b3CF39F51425f762510dCb196026
+Contract Name: MockUSDC
+Symbol: USDC
+Decimals: 6
+Initial Supply: 1000000000000
+Deployment Tx: 0x3a22bf82889a1e3b404228a9fbba5189dba40bfa7afd14f6d9d5b2aebe66cc35
+Deployment Block: 31066173
+Allowed on V2: yes (Tx: 0xb7d247a111f2f013ac939730c10450f672416375f81e7cff744156255f798f26)

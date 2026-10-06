@@ -23,13 +23,15 @@ Tucker Invoice V2 introduces on-chain verifiable settlement with zero PII exposu
 > [!NOTE]
 > **Current Testnet Facts (Pharos Atlantic - Chain ID 688689)**
 > - **InvoiceManager V1 (Verified)**: `0x5a95783b6f19841E79c4Bb506981310661a4cc7d`
-> - **InvoiceManagerV2 (Live Testnet)**: `0xB4f7A4dA6eD75033E25231bd43D9A207797391f6`
+> - **InvoiceManager V2 (Live Testnet)**: `0xB4f7A4dA6eD75033E25231bd43D9A207797391f6`
 > - **Tucker Builder Token (TBT ERC-20)**: `0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5`
+> - **TBT Faucet (Live Testnet)**: `0x0A159a3B65802Ee7fDbaD92Bb76B142c9aCe5c2e`
+> - **MockUSDC (6-Decimal ERC-20)**: `0x91a487BfAC67b3CF39F51425f762510dCb196026`
+> - **Production dApp**: [https://tucker-invoice.vercel.app](https://tucker-invoice.vercel.app)
 
 > [!IMPORTANT]
-> **Future Targets & Testnet Architecture**
-> - Stablecoin integration (e.g. native USDC/USDT on Pharos) represents a V2 testnet-ready architecture pending deployment of official stablecoins on Pharos.
-> - Current testnet pilot operations utilize the verified TBT test token.
+> **Multi-Token & Stablecoin Readiness**
+> - Multi-token architecture is live on testnet supporting both 18-decimal (TBT) and 6-decimal (USDC) settlements, ready for native stablecoins upon Pharos Mainnet launch.
 
 ---
 

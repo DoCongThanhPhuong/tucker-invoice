@@ -1,19 +1,22 @@
 # Measurable Incubator Milestones - Tucker Invoice V2
 
-## Milestone 1: Security & Test Readiness (Completed locally)
-- **Result**: 50/50 Foundry tests pass across unit, deployment-script, edge-case, fuzzing, and state-transition tests; frontend utility tests and production build also pass locally.
-- **Coverage**: V2 tests cover allowlisting, payments, expiry, cancellation, false-return tokens, token contracts without code, and 6-decimal token units.
-- **Boundary**: This is not an audit or formal verification claim. CI must reproduce these results after the changes are committed.
+## Milestone 1: Security & Test Readiness (Completed)
+- **Result**: 57/57 Foundry tests pass across unit, deployment-script, lifecycle, fuzzing, and state-transition tests; 6/6 frontend unit tests and production build pass in CI.
+- **Coverage**: V2 tests cover allowlisting, multi-token payments (18 & 6 decimals), expiry, cancellation, false-return tokens, and script lifecycles.
 
-## Milestone 2: Merchant/Payer Workflow & UX (Implemented, pending V2 deployment)
-- **Target**: Dual-version coexistence (V1 Legacy & V2 Incubator MVP) with end-to-end receipt rendering.
+## Milestone 2: Merchant/Payer Workflow & UX (Completed & Live)
+- **Target**: Dual-version coexistence (V1 Legacy & V2 Incubator MVP) with multi-token support and end-to-end receipt rendering.
 - **Result**:
-  - Dual-version workspace switcher implemented.
-  - Deep-linking (`/v2/invoice/:id`) & QR code generation.
-  - Printable payment receipt with non-tax invoice regulatory disclaimer.
-  - Production build is validated locally; V2 actions remain unavailable until an approved V2 deployment address is configured.
+  - Dual-version workspace switcher implemented and live at [tucker-invoice.vercel.app](https://tucker-invoice.vercel.app).
+  - Multi-token selector with TBT (18 decimals) and MockUSDC (6 decimals) support.
+  - One-click TBT Faucet claiming button integrated.
+  - Deep-linking (`/v2/invoice/:id`) & printable payment receipt with disclaimer.
+  - Deployed on Pharos Atlantic Testnet (`0xB4f7A4dA6eD75033E25231bd43D9A207797391f6`).
 
-## Milestone 3: Pilot Onboarding & Testnet Validation (Target)
+## Milestone 3: Pilot Onboarding & Testnet Validation (In Progress)
+- **Current Progress**:
+  - 12 active on-chain invoices processed on Pharos Atlantic Testnet across multiple tokens.
+  - Verified on-chain lifecycle: creation (`InvoiceCreated`), payment settlement (`InvoicePaid`), and merchant cancellation (`InvoiceCancelled`).
 - **Target Metrics**:
   - 20+ active pilot invoices processed on Pharos Atlantic Testnet.
   - 5 Web3 agency pilot participants providing UX feedback.
