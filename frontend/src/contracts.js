@@ -15,7 +15,7 @@ export const INVOICE_MANAGER_V2_ADDRESS =
 export const INVOICE_MANAGER_V2_DEPLOYMENT_BLOCK = 28053178;
 
 export const TBT_FAUCET_ADDRESS =
-  import.meta.env.VITE_TBT_FAUCET_ADDRESS || "";
+  import.meta.env.VITE_TBT_FAUCET_ADDRESS || "0x0A159a3B65802Ee7fDbaD92Bb76B142c9aCe5c2e";
 export const TBT_FAUCET_ABI = [
   "function claim()",
   "function lastClaimTime(address) view returns (uint256)",

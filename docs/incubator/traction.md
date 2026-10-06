@@ -10,6 +10,7 @@
 | **InvoiceManager V1** | Pharos Atlantic | `0x5a95783b6f19841E79c4Bb506981310661a4cc7d` (Verified) | [View on PharosScan](https://atlantic.pharosscan.xyz/address/0x5a95783b6f19841E79c4Bb506981310661a4cc7d) |
 | **InvoiceManager V2** | Pharos Atlantic | `0xB4f7A4dA6eD75033E25231bd43D9A207797391f6` (Live Testnet, 5 Invoices) | [View on PharosScan](https://atlantic.pharosscan.xyz/address/0xB4f7A4dA6eD75033E25231bd43D9A207797391f6) |
 | **Tucker Builder Token (TBT)** | Pharos Atlantic | `0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5` (Verified) | [View on PharosScan](https://atlantic.pharosscan.xyz/address/0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5) |
+| **TBTFaucet** | Pharos Atlantic | `0x0A159a3B65802Ee7fDbaD92Bb76B142c9aCe5c2e` (Live Testnet, Funded 10,000 TBT) | [View on PharosScan](https://atlantic.pharosscan.xyz/address/0x0A159a3B65802Ee7fDbaD92Bb76B142c9aCe5c2e) |
 
 ---
 
