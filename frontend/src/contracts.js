@@ -21,6 +21,8 @@ export const TBT_FAUCET_ABI = [
   "function lastClaimTime(address) view returns (uint256)",
   "function token() view returns (address)",
   "event Claimed(address indexed recipient, uint256 amount)",
+  "error CooldownActive(uint256 nextAvailableTimestamp)",
+  "error InsufficientFaucetBalance()",
 ];
 
 export const INVOICE_MANAGER_ABI = [
@@ -44,6 +46,16 @@ export const INVOICE_MANAGER_V2_ABI = [
   "event InvoicePaid(uint256 indexed invoiceId, address indexed payer, address paymentToken, uint256 amount, uint64 paidAt)",
   "event InvoiceCancelled(uint256 indexed invoiceId, address indexed merchant, uint64 cancelledAt)",
   "event PaymentTokenSupportUpdated(address indexed token, bool indexed isSupported)",
+  "error ZeroAddressPayer()",
+  "error ZeroAddressToken()",
+  "error UnsupportedPaymentToken(address token)",
+  "error InvalidAmount()",
+  "error DueDateInPast(uint64 dueDate, uint64 currentTimestamp)",
+  "error InvoiceNotFound(uint256 invoiceId)",
+  "error InvoiceNotOpen(uint256 invoiceId, uint8 status)",
+  "error UnauthorizedPayer(address caller, address expectedPayer)",
+  "error UnauthorizedMerchant(address caller, address expectedMerchant)",
+  "error InvoiceExpired(uint64 dueDate, uint64 currentTimestamp)",
 ];
 
 export const ERC20_ABI = [

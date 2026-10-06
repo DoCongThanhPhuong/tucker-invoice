@@ -31,6 +31,27 @@ function shortAddress(address) {
 }
 
 function errorMessage(error) {
+  if (error?.errorName === "CooldownActive" || error?.data?.includes("c1ab61a1") || error?.message?.includes("c1ab61a1")) {
+    return "Faucet cooldown is active (1 claim per 24 hours). Please try again tomorrow.";
+  }
+  if (error?.errorName === "InsufficientFaucetBalance") {
+    return "Faucet balance is insufficient.";
+  }
+  if (error?.errorName === "UnauthorizedPayer") {
+    return "Connected wallet is not authorized to pay this invoice.";
+  }
+  if (error?.errorName === "UnauthorizedMerchant") {
+    return "Only merchant who created this invoice can cancel it.";
+  }
+  if (error?.errorName === "InvoiceExpired") {
+    return "Invoice has expired and cannot be paid.";
+  }
+  if (error?.errorName === "InvoiceNotOpen") {
+    return "Invoice is already settled or cancelled.";
+  }
+  if (error?.errorName) {
+    return `Action reverted: ${error.errorName}`;
+  }
   return error?.shortMessage || error?.reason || error?.info?.error?.message || error?.message || "Something went wrong";
 }
 
@@ -54,6 +75,7 @@ function App() {
   });
   const [tokenMeta, setTokenMeta] = useState({symbol: "TBT", decimals: 18, name: "Tucker Builder Token"});
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [faucetCooldown, setFaucetCooldown] = useState(false);
 
   // Invoice view & search state
   const initialV2Id = useMemo(() => v2InvoiceIdFromPath(window.location.pathname), []);
@@ -132,12 +154,19 @@ function App() {
       setNextInvoiceId(totalCount);
 
       if (walletAddress) {
-        const [phrs, tbt] = await Promise.all([
+        const faucetContract = TBT_FAUCET_ADDRESS
+          ? new Contract(TBT_FAUCET_ADDRESS, TBT_FAUCET_ABI, readProvider)
+          : null;
+        const [phrs, tbt, lastClaim] = await Promise.all([
           readProvider.getBalance(walletAddress),
           token.balanceOf(walletAddress),
+          faucetContract ? faucetContract.lastClaimTime(walletAddress).catch(() => 0n) : Promise.resolve(0n),
         ]);
         setNativeBalance(Number(formatEther(phrs)).toFixed(4));
         setTokenBalance(Number(formatUnits(tbt, decimals)).toLocaleString(undefined, {maximumFractionDigits: 4}));
+        const lastClaimSec = Number(lastClaim);
+        const nowSec = Math.floor(Date.now() / 1000);
+        setFaucetCooldown(lastClaimSec > 0 && nowSec < lastClaimSec + 86400);
       }
     } catch {
       setNextInvoiceId("—");
@@ -473,6 +502,9 @@ function App() {
   const claimTestTokens = async () => {
     if (!account) return setNotice({type: "error", text: "Connect wallet first"});
     if (!TBT_FAUCET_ADDRESS) return setNotice({type: "error", text: "Faucet address not configured"});
+    if (faucetCooldown) {
+      return setNotice({type: "error", text: "Faucet cooldown is active (1 claim per 24 hours). Please try again tomorrow."});
+    }
     try {
       setClaimBusy(true);
       const signer = await getSigner();
@@ -628,9 +660,10 @@ function App() {
               type="button"
               style={{marginTop: "8px", fontSize: "11px", padding: "4px 8px"}}
               onClick={claimTestTokens}
-              disabled={claimBusy}
+              disabled={claimBusy || faucetCooldown}
+              title={faucetCooldown ? "Faucet cooldown is active (1 claim per 24 hours)" : "Claim 100 testnet TBT"}
             >
-              {claimBusy ? "Claiming…" : "Claim 100 TBT"}
+              {claimBusy ? "Claiming…" : faucetCooldown ? "Cooldown (24h)" : "Claim 100 TBT"}
             </button>
           )}
         </div>
