@@ -33,9 +33,7 @@ contract TBTFaucetTest is Test {
         faucet.claim();
 
         vm.prank(user1);
-        vm.expectRevert(
-            abi.encodeWithSelector(TBTFaucet.CooldownActive.selector, block.timestamp + 1 days)
-        );
+        vm.expectRevert(abi.encodeWithSelector(TBTFaucet.CooldownActive.selector, block.timestamp + 1 days));
         faucet.claim();
     }
 
