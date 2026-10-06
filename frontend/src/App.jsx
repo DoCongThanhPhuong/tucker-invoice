@@ -12,6 +12,8 @@ import {
   PHAROS_CHAIN_ID,
   PHAROS_RPC_URL,
   TBT_ADDRESS,
+  TBT_FAUCET_ABI,
+  TBT_FAUCET_ADDRESS,
 } from "./contracts.js";
 import {
   deriveV2InvoiceStatus,
@@ -466,6 +468,27 @@ function App() {
     }
   };
 
+  const [claimBusy, setClaimBusy] = useState(false);
+
+  const claimTestTokens = async () => {
+    if (!account) return setNotice({type: "error", text: "Connect wallet first"});
+    if (!TBT_FAUCET_ADDRESS) return setNotice({type: "error", text: "Faucet address not configured"});
+    try {
+      setClaimBusy(true);
+      const signer = await getSigner();
+      const faucet = new Contract(TBT_FAUCET_ADDRESS, TBT_FAUCET_ABI, signer);
+      const tx = await faucet.claim();
+      setNotice({type: "info", text: "Faucet claim submitted…"});
+      await tx.wait();
+      setNotice({type: "success", text: "Claimed 100 TBT successfully!"});
+      await refreshDashboard();
+    } catch (error) {
+      setNotice({type: "error", text: errorMessage(error)});
+    } finally {
+      setClaimBusy(false);
+    }
+  };
+
 
   useEffect(() => {
     refreshDashboard().catch(() => setNextInvoiceId("—"));
@@ -595,9 +618,22 @@ function App() {
           <div className="hero-card-row"><span>Privacy</span><b>Off-chain Ref Hash</b></div>
         </aside>
       </section>
-
       <section className="stats shell" aria-label="Account overview">
-        <div><span>Your TBT balance</span><strong>{maskNetworkData ? "—" : tokenBalance}</strong></div>
+        <div>
+          <span>Your TBT balance</span>
+          <strong>{maskNetworkData ? "—" : tokenBalance}</strong>
+          {TBT_FAUCET_ADDRESS && !maskNetworkData && (
+            <button
+              className="secondary compact"
+              type="button"
+              style={{marginTop: "8px", fontSize: "11px", padding: "4px 8px"}}
+              onClick={claimTestTokens}
+              disabled={claimBusy}
+            >
+              {claimBusy ? "Claiming…" : "Claim 100 TBT"}
+            </button>
+          )}
+        </div>
         <div><span>Gas balance</span><strong>{maskNetworkData ? "—" : nativeBalance} {!maskNetworkData && <small>PHRS</small>}</strong></div>
         <div><span>Total Invoiced</span><strong>{maskNetworkData ? "—" : `${dashboardMetrics.totalInvoiced} TBT`}</strong></div>
         <div><span>Outstanding</span><strong>{maskNetworkData ? "—" : `${dashboardMetrics.totalOutstanding} TBT`}</strong></div>

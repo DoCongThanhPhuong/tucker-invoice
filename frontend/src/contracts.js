@@ -14,6 +14,15 @@ export const INVOICE_MANAGER_V2_ADDRESS =
   import.meta.env.VITE_INVOICE_MANAGER_V2_ADDRESS || "0xB4f7A4dA6eD75033E25231bd43D9A207797391f6";
 export const INVOICE_MANAGER_V2_DEPLOYMENT_BLOCK = 28053178;
 
+export const TBT_FAUCET_ADDRESS =
+  import.meta.env.VITE_TBT_FAUCET_ADDRESS || "";
+export const TBT_FAUCET_ABI = [
+  "function claim()",
+  "function lastClaimTime(address) view returns (uint256)",
+  "function token() view returns (address)",
+  "event Claimed(address indexed recipient, uint256 amount)",
+];
+
 export const INVOICE_MANAGER_ABI = [
   "function createInvoice(address payer, uint256 amount) returns (uint256 invoiceId)",
   "function payInvoice(uint256 invoiceId)",
