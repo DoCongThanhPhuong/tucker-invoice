@@ -48,6 +48,12 @@ h1 em { color: var(--lime); font-family: "Playfair Display", serif; font-weight:
 .stats span { display: block; margin-bottom: 8px; color: var(--muted); font: 11px "DM Mono"; text-transform: uppercase; letter-spacing: .08em; }
 .stats strong { font-size: 25px; letter-spacing: -.04em; }
 .stats small { color: var(--muted); font-size: 12px; }
+.stat-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; min-height: 24px; }
+.stat-card-header span { margin-bottom: 0; }
+.faucet-badge-btn { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; font: 500 11px/1.2 "DM Mono", monospace; border-radius: 99px; border: 1px solid rgba(201,255,70,.4); background: rgba(201,255,70,.1); color: var(--lime); cursor: pointer; transition: all .2s ease; white-space: nowrap; }
+.faucet-badge-btn:hover:not(:disabled) { background: var(--lime); color: var(--ink); border-color: var(--lime); box-shadow: 0 0 12px rgba(201,255,70,.35); transform: translateY(-1px); }
+.faucet-badge-btn:disabled { opacity: .65; cursor: not-allowed; }
+.faucet-badge-btn.cooldown { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.15); color: #9ea094; }
 .workspace { padding-block: 120px; }
 .section-heading { margin-bottom: 44px; }
 .heading-with-tabs { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }

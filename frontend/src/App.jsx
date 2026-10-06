@@ -31,22 +31,26 @@ function shortAddress(address) {
 }
 
 function errorMessage(error) {
-  if (error?.errorName === "CooldownActive" || error?.data?.includes("c1ab61a1") || error?.message?.includes("c1ab61a1")) {
-    return "Faucet cooldown is active (1 claim per 24 hours). Please try again tomorrow.";
+  if (!error) return "Unknown error occurred";
+  if (typeof error === "string") return error;
+
+  const errStr = String(error?.data || error?.message || error?.info?.error?.message || error?.shortMessage || "");
+  if (error?.errorName === "CooldownActive" || errStr.includes("c1ab61a1") || errStr.includes("CooldownActive")) {
+    return "Faucet cooldown is active (1 claim per 24 hours). Next claim available tomorrow.";
   }
-  if (error?.errorName === "InsufficientFaucetBalance") {
+  if (error?.errorName === "InsufficientFaucetBalance" || errStr.includes("InsufficientFaucetBalance")) {
     return "Faucet balance is insufficient.";
   }
-  if (error?.errorName === "UnauthorizedPayer") {
+  if (error?.errorName === "UnauthorizedPayer" || errStr.includes("UnauthorizedPayer")) {
     return "Connected wallet is not authorized to pay this invoice.";
   }
-  if (error?.errorName === "UnauthorizedMerchant") {
+  if (error?.errorName === "UnauthorizedMerchant" || errStr.includes("UnauthorizedMerchant")) {
     return "Only merchant who created this invoice can cancel it.";
   }
-  if (error?.errorName === "InvoiceExpired") {
+  if (error?.errorName === "InvoiceExpired" || errStr.includes("InvoiceExpired")) {
     return "Invoice has expired and cannot be paid.";
   }
-  if (error?.errorName === "InvoiceNotOpen") {
+  if (error?.errorName === "InvoiceNotOpen" || errStr.includes("InvoiceNotOpen")) {
     return "Invoice is already settled or cancelled.";
   }
   if (error?.errorName) {
@@ -76,6 +80,7 @@ function App() {
   const [tokenMeta, setTokenMeta] = useState({symbol: "TBT", decimals: 18, name: "Tucker Builder Token"});
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [faucetCooldown, setFaucetCooldown] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState("");
 
   // Invoice view & search state
   const initialV2Id = useMemo(() => v2InvoiceIdFromPath(window.location.pathname), []);
@@ -166,7 +171,16 @@ function App() {
         setTokenBalance(Number(formatUnits(tbt, decimals)).toLocaleString(undefined, {maximumFractionDigits: 4}));
         const lastClaimSec = Number(lastClaim);
         const nowSec = Math.floor(Date.now() / 1000);
-        setFaucetCooldown(lastClaimSec > 0 && nowSec < lastClaimSec + 86400);
+        const isCooldown = lastClaimSec > 0 && nowSec < lastClaimSec + 86400;
+        setFaucetCooldown(isCooldown);
+        if (isCooldown) {
+          const diffSec = (lastClaimSec + 86400) - nowSec;
+          const hours = Math.floor(diffSec / 3600);
+          const mins = Math.floor((diffSec % 3600) / 60);
+          setCooldownRemaining(`${hours}h ${mins}m`);
+        } else {
+          setCooldownRemaining("");
+        }
       }
     } catch {
       setNextInvoiceId("—");
@@ -503,7 +517,8 @@ function App() {
     if (!account) return setNotice({type: "error", text: "Connect wallet first"});
     if (!TBT_FAUCET_ADDRESS) return setNotice({type: "error", text: "Faucet address not configured"});
     if (faucetCooldown) {
-      return setNotice({type: "error", text: "Faucet cooldown is active (1 claim per 24 hours). Please try again tomorrow."});
+      setNotice({type: "info", text: `Faucet cooldown is active (1 claim per 24 hours). Next claim available in ${cooldownRemaining || "a few hours"}.`});
+      return;
     }
     try {
       setClaimBusy(true);
@@ -513,7 +528,7 @@ function App() {
       setNotice({type: "info", text: "Faucet claim submitted…"});
       await tx.wait();
       setNotice({type: "success", text: "Claimed 100 TBT successfully!"});
-      await refreshDashboard();
+      await refreshDashboard(account);
     } catch (error) {
       setNotice({type: "error", text: errorMessage(error)});
     } finally {
@@ -619,8 +634,12 @@ function App() {
           <span>Tucker Invoice <small className="v2-badge">V2 Incubator MVP</small></span>
         </a>
         <div className="nav-actions">
-          <span className={`network-pill ${onCorrectChain ? "online" : ""}`}>
-            <i /> {onCorrectChain ? "Pharos Atlantic live" : "Wrong network"}
+          <span
+            className={`network-pill ${onCorrectChain ? "online" : account ? "warning" : ""}`}
+            onClick={account && !onCorrectChain ? switchNetwork : undefined}
+            style={{cursor: account && !onCorrectChain ? "pointer" : "default"}}
+          >
+            <i /> {onCorrectChain ? "Pharos Atlantic live" : account ? "Wrong network (Switch)" : "Pharos Atlantic"}
           </span>
           {account ? (
             <button className="wallet-button" type="button" onClick={connectWallet}>{shortAddress(account)}</button>
@@ -652,20 +671,21 @@ function App() {
       </section>
       <section className="stats shell" aria-label="Account overview">
         <div>
-          <span>Your TBT balance</span>
-          <strong>{maskNetworkData ? "—" : tokenBalance}</strong>
-          {TBT_FAUCET_ADDRESS && !maskNetworkData && (
-            <button
-              className="secondary compact"
-              type="button"
-              style={{marginTop: "8px", fontSize: "11px", padding: "4px 8px"}}
-              onClick={claimTestTokens}
-              disabled={claimBusy || faucetCooldown}
-              title={faucetCooldown ? "Faucet cooldown is active (1 claim per 24 hours)" : "Claim 100 testnet TBT"}
-            >
-              {claimBusy ? "Claiming…" : faucetCooldown ? "Cooldown (24h)" : "Claim 100 TBT"}
-            </button>
-          )}
+          <div className="stat-card-header">
+            <span>Your TBT balance</span>
+            {TBT_FAUCET_ADDRESS && !maskNetworkData && (
+              <button
+                className={`faucet-badge-btn ${faucetCooldown ? "cooldown" : ""}`}
+                type="button"
+                onClick={claimTestTokens}
+                disabled={claimBusy || faucetCooldown}
+                title={faucetCooldown ? `Faucet cooldown active (${cooldownRemaining || "24h"} remaining)` : "Claim 100 testnet TBT"}
+              >
+                {claimBusy ? "Claiming…" : faucetCooldown ? `⏳ Cooldown (${cooldownRemaining || "24h"})` : "＋ Claim 100 TBT"}
+              </button>
+            )}
+          </div>
+          <strong>{maskNetworkData ? "—" : tokenBalance} {!maskNetworkData && <small>TBT</small>}</strong>
         </div>
         <div><span>Gas balance</span><strong>{maskNetworkData ? "—" : nativeBalance} {!maskNetworkData && <small>PHRS</small>}</strong></div>
         <div><span>Total Invoiced</span><strong>{maskNetworkData ? "—" : `${dashboardMetrics.totalInvoiced} TBT`}</strong></div>
