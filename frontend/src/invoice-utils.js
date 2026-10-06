@@ -16,10 +16,6 @@ export function v2InvoicePath(invoiceId) {
   return `/v2/invoice/${invoiceId}`;
 }
 
-export function uniqueInvoiceIds(events) {
-  return [...new Set(events.map((event) => event.args.invoiceId.toString()))];
-}
-
 export function deriveV2InvoiceStatus(statusNum, dueDateSec, currentSec = Math.floor(Date.now() / 1000)) {
   const num = Number(statusNum);
   if (num === 1) return "Paid";

@@ -86,14 +86,6 @@ contract InvoiceManagerV2Test is Test {
         new InvoiceManagerV2(OWNER, tokens);
     }
 
-    function test_Constructor_RejectsTokenWithoutCode() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(0x999);
-
-        vm.expectRevert(abi.encodeWithSelector(InvoiceManagerV2.PaymentTokenHasNoCode.selector, address(0x999)));
-        new InvoiceManagerV2(OWNER, tokens);
-    }
-
     function test_Constructor_SucceedsWithInitialTokens() public view {
         assertTrue(invoiceManager.supportedPaymentTokens(address(tbtToken)));
         assertTrue(invoiceManager.supportedPaymentTokens(address(usdcToken)));
@@ -114,14 +106,6 @@ contract InvoiceManagerV2Test is Test {
         vm.prank(OWNER);
         vm.expectRevert(InvoiceManagerV2.ZeroAddressToken.selector);
         invoiceManager.setPaymentTokenSupport(address(0), true);
-    }
-
-    function test_SetPaymentTokenSupport_RejectsTokenWithoutCode() public {
-        address nonContractToken = address(0x999);
-
-        vm.prank(OWNER);
-        vm.expectRevert(abi.encodeWithSelector(InvoiceManagerV2.PaymentTokenHasNoCode.selector, nonContractToken));
-        invoiceManager.setPaymentTokenSupport(nonContractToken, true);
     }
 
     function test_SetPaymentTokenSupport_AddsAndRemovesToken() public {

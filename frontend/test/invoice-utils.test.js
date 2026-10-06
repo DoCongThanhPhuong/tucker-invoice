@@ -5,7 +5,6 @@ import {
   invoiceIdFromPath,
   invoicePath,
   textToReferenceHash,
-  uniqueInvoiceIds,
   v2InvoiceIdFromPath,
   v2InvoicePath,
 } from "../src/invoice-utils.js";
@@ -48,11 +47,3 @@ test("generates deterministic bytes32 reference hash", () => {
   assert.equal(hash1.length, 66); // 0x + 64 hex chars
 });
 
-test("deduplicates invoice IDs from merchant and payer event queries", () => {
-  const events = [
-    {args: {invoiceId: 1n}},
-    {args: {invoiceId: 2n}},
-    {args: {invoiceId: 1n}},
-  ];
-  assert.deepEqual(uniqueInvoiceIds(events), ["1", "2"]);
-});

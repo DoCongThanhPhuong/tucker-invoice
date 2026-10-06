@@ -36,10 +36,8 @@ contract InvoiceManagerV2 is Ownable {
     mapping(address => bool) public supportedPaymentTokens;
 
     // Custom errors
-    error ZeroAddressOwner();
     error ZeroAddressPayer();
     error ZeroAddressToken();
-    error PaymentTokenHasNoCode(address token);
     error UnsupportedPaymentToken(address token);
     error InvalidAmount();
     error DueDateInPast(uint64 dueDate, uint64 currentTimestamp);
@@ -69,12 +67,9 @@ contract InvoiceManagerV2 is Ownable {
     event PaymentTokenSupportUpdated(address indexed token, bool indexed isSupported);
 
     constructor(address initialOwner, address[] memory initialTokens) Ownable(initialOwner) {
-        if (initialOwner == address(0)) revert ZeroAddressOwner();
-
         for (uint256 i = 0; i < initialTokens.length; i++) {
             address token = initialTokens[i];
             if (token == address(0)) revert ZeroAddressToken();
-            if (token.code.length == 0) revert PaymentTokenHasNoCode(token);
             supportedPaymentTokens[token] = true;
             emit PaymentTokenSupportUpdated(token, true);
         }
@@ -82,7 +77,6 @@ contract InvoiceManagerV2 is Ownable {
 
     function setPaymentTokenSupport(address token, bool isSupported) external onlyOwner {
         if (token == address(0)) revert ZeroAddressToken();
-        if (isSupported && token.code.length == 0) revert PaymentTokenHasNoCode(token);
         supportedPaymentTokens[token] = isSupported;
         emit PaymentTokenSupportUpdated(token, isSupported);
     }

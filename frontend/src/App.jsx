@@ -1,16 +1,13 @@
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {BrowserProvider, Contract, formatEther, formatUnits, isAddress, JsonRpcProvider, parseUnits} from "ethers";
-import QRCode from "qrcode";
 import {
   DEFAULT_V2_TOKENS,
   ERC20_ABI,
   EXPLORER_URL,
   INVOICE_MANAGER_ABI,
   INVOICE_MANAGER_ADDRESS,
-  INVOICE_MANAGER_DEPLOYMENT_BLOCK,
   INVOICE_MANAGER_V2_ABI,
   INVOICE_MANAGER_V2_ADDRESS,
-  INVOICE_MANAGER_V2_DEPLOYMENT_BLOCK,
   PHAROS_CHAIN_HEX,
   PHAROS_CHAIN_ID,
   PHAROS_RPC_URL,
@@ -21,13 +18,11 @@ import {
   invoiceIdFromPath,
   invoicePath,
   textToReferenceHash,
-  uniqueInvoiceIds,
   v2InvoiceIdFromPath,
   v2InvoicePath,
 } from "./invoice-utils.js";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const EVENT_BLOCK_RANGE = 1000;
 
 function shortAddress(address) {
   return address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Not connected";
@@ -35,15 +30,6 @@ function shortAddress(address) {
 
 function errorMessage(error) {
   return error?.shortMessage || error?.reason || error?.info?.error?.message || error?.message || "Something went wrong";
-}
-
-async function queryFilterInRanges(contract, filter, fromBlock, toBlock) {
-  const events = [];
-  for (let start = fromBlock; start <= toBlock; start += EVENT_BLOCK_RANGE) {
-    const end = Math.min(start + EVENT_BLOCK_RANGE - 1, toBlock);
-    events.push(...await contract.queryFilter(filter, start, end));
-  }
-  return events;
 }
 
 function App() {
@@ -84,7 +70,6 @@ function App() {
 
   // Share & QR
   const [showShare, setShowShare] = useState(Boolean(initialV2Id || initialV1Id));
-  const [qrCode, setQrCode] = useState("");
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState(null);
 
@@ -96,6 +81,10 @@ function App() {
     const path = invoice.version === "v2" ? v2InvoicePath(invoice.id) : invoicePath(invoice.id);
     return `${window.location.origin}${path}`;
   }, [invoice]);
+
+  const qrCode = (shareUrl && showShare)
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(shareUrl)}&color=11130f&bgcolor=f1f0e9`
+    : "";
 
   const getSigner = useCallback(async () => {
     if (!window.ethereum) throw new Error("MetaMask is not installed");
@@ -161,70 +150,74 @@ function App() {
     try {
       setMyInvoicesBusy(true);
       setMyInvoicesError("");
-      const latestBlock = await readProvider.getBlockNumber();
-
       const items = [];
+      const lower = walletAddress.toLowerCase();
 
       // Query V1
+      // ponytail: direct sequential ID scan, use indexer/subgraph if nextInvoiceId > 500
       const v1Manager = new Contract(INVOICE_MANAGER_ADDRESS, INVOICE_MANAGER_ABI, readProvider);
-      const [v1Created, v1Payable] = await Promise.all([
-        queryFilterInRanges(v1Manager, v1Manager.filters.InvoiceCreated(null, walletAddress, null), INVOICE_MANAGER_DEPLOYMENT_BLOCK, latestBlock),
-        queryFilterInRanges(v1Manager, v1Manager.filters.InvoiceCreated(null, null, walletAddress), INVOICE_MANAGER_DEPLOYMENT_BLOCK, latestBlock),
-      ]);
-      const v1Ids = uniqueInvoiceIds([...v1Created, ...v1Payable]);
-      const v1Items = await Promise.all(v1Ids.map(async (id) => {
-        const data = await v1Manager.invoices(id);
-        return {
-          id,
-          version: "v1",
-          merchant: data.merchant,
-          payer: data.payer,
-          paymentToken: TBT_ADDRESS,
-          tokenSymbol: "TBT",
-          tokenDecimals: 18,
-          amount: data.amount,
-          dueDate: null,
-          referenceHash: null,
-          statusNum: Number(data.status),
-          derivedStatus: Number(data.status) === 1 ? "Paid" : "Open",
-        };
-      }));
-      items.push(...v1Items);
-
-      // Query V2 if deployed / configured
-      if (INVOICE_MANAGER_V2_ADDRESS) {
-        const v2Manager = new Contract(INVOICE_MANAGER_V2_ADDRESS, INVOICE_MANAGER_V2_ABI, readProvider);
-        const [v2Created, v2Payable] = await Promise.all([
-          queryFilterInRanges(v2Manager, v2Manager.filters.InvoiceCreated(null, walletAddress, null), INVOICE_MANAGER_V2_DEPLOYMENT_BLOCK, latestBlock),
-          queryFilterInRanges(v2Manager, v2Manager.filters.InvoiceCreated(null, null, walletAddress), INVOICE_MANAGER_V2_DEPLOYMENT_BLOCK, latestBlock),
-        ]);
-        const v2Ids = uniqueInvoiceIds([...v2Created, ...v2Payable]);
-        const v2Items = await Promise.all(v2Ids.map(async (id) => {
-          const data = await v2Manager.invoices(id);
-          let sym = "TBT";
-          let dec = 18;
-          try {
-            const tokenContract = new Contract(data.paymentToken, ERC20_ABI, readProvider);
-            [sym, dec] = await Promise.all([tokenContract.symbol(), tokenContract.decimals()]);
-          } catch {
-            // fallback
-          }
-          const nowSec = Math.floor(Date.now() / 1000);
+      const v1Count = Number(await v1Manager.nextInvoiceId().catch(() => 0n));
+      const v1Ids = Array.from({length: Math.min(v1Count, 50)}, (_, i) => BigInt(Math.max(0, v1Count - 50) + i));
+      const v1Items = (await Promise.all(v1Ids.map(async (id) => {
+        try {
+          const data = await v1Manager.invoices(id);
+          if (data.merchant.toLowerCase() !== lower && data.payer.toLowerCase() !== lower) return null;
           return {
             id,
-            version: "v2",
+            version: "v1",
             merchant: data.merchant,
             payer: data.payer,
-            paymentToken: data.paymentToken,
-            tokenSymbol: sym,
-            tokenDecimals: Number(dec),
+            paymentToken: TBT_ADDRESS,
+            tokenSymbol: "TBT",
+            tokenDecimals: 18,
             amount: data.amount,
-            dueDate: Number(data.dueDate),
-            referenceHash: data.referenceHash,
+            dueDate: null,
+            referenceHash: null,
             statusNum: Number(data.status),
-            derivedStatus: deriveV2InvoiceStatus(data.status, data.dueDate, nowSec),
+            derivedStatus: Number(data.status) === 1 ? "Paid" : "Open",
           };
-        }));
+        } catch {
+          return null;
+        }
+      }))).filter(Boolean);
+      items.push(...v1Items);
+
+      // Query V2 if configured
+      if (INVOICE_MANAGER_V2_ADDRESS) {
+        const v2Manager = new Contract(INVOICE_MANAGER_V2_ADDRESS, INVOICE_MANAGER_V2_ABI, readProvider);
+        const v2Count = Number(await v2Manager.nextInvoiceId().catch(() => 0n));
+        const v2Ids = Array.from({length: Math.min(v2Count, 50)}, (_, i) => BigInt(Math.max(0, v2Count - 50) + i));
+        const nowSec = Math.floor(Date.now() / 1000);
+        const v2Items = (await Promise.all(v2Ids.map(async (id) => {
+          try {
+            const data = await v2Manager.invoices(id);
+            if (data.merchant.toLowerCase() !== lower && data.payer.toLowerCase() !== lower) return null;
+            let sym = "TBT";
+            let dec = 18;
+            try {
+              const tokenContract = new Contract(data.paymentToken, ERC20_ABI, readProvider);
+              [sym, dec] = await Promise.all([tokenContract.symbol(), tokenContract.decimals()]);
+            } catch {
+              // fallback
+            }
+            return {
+              id,
+              version: "v2",
+              merchant: data.merchant,
+              payer: data.payer,
+              paymentToken: data.paymentToken,
+              tokenSymbol: sym,
+              tokenDecimals: Number(dec),
+              amount: data.amount,
+              dueDate: Number(data.dueDate),
+              referenceHash: data.referenceHash,
+              statusNum: Number(data.status),
+              derivedStatus: deriveV2InvoiceStatus(data.status, data.dueDate, nowSec),
+            };
+          } catch {
+            return null;
+          }
+        }))).filter(Boolean);
         items.push(...v2Items);
       }
 
@@ -473,17 +466,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (!shareUrl || !showShare) {
-      setQrCode("");
-      return undefined;
-    }
-    let active = true;
-    QRCode.toDataURL(shareUrl, {width: 220, margin: 1, color: {dark: "#11130f", light: "#f1f0e9"}})
-      .then((value) => { if (active) setQrCode(value); })
-      .catch(() => { if (active) setNotice({type: "error", text: "Could not generate QR code"}); });
-    return () => { active = false; };
-  }, [shareUrl, showShare]);
 
   useEffect(() => {
     refreshDashboard().catch(() => setNextInvoiceId("—"));
