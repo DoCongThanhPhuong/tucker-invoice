@@ -13,6 +13,7 @@ contract SimulateActivityTest is Test {
 
     address public owner = address(0xA1);
     address public payer = address(0xB2);
+    address internal constant ORIGINAL_TBT = address(0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5);
 
     function setUp() public {
         token = new TuckerBuilderToken();
@@ -25,6 +26,10 @@ contract SimulateActivityTest is Test {
         vm.setEnv("TBT_ADDRESS", vm.toString(address(token)));
         vm.setEnv("ACTIVITY_PAYER", vm.toString(payer));
         vm.setEnv("ACTIVITY_COUNT", "3");
+    }
+
+    function tearDown() public {
+        vm.setEnv("TBT_ADDRESS", vm.toString(ORIGINAL_TBT));
     }
 
     function test_RunCreatesSimulatedInvoices() public {
