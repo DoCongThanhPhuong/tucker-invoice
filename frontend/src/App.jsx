@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {BrowserProvider, Contract, formatEther, formatUnits, isAddress, JsonRpcProvider, parseUnits} from "ethers";
 import {
   DEFAULT_V2_TOKENS,
@@ -311,15 +311,49 @@ function App() {
       if (!window.ethereum) throw new Error("Install MetaMask to continue");
       const accounts = await window.ethereum.request({method: "eth_requestAccounts"});
       const currentChain = await window.ethereum.request({method: "eth_chainId"});
-      const walletAddress = accounts[0];
+      const walletAddress = accounts[0] || "";
       setAccount(walletAddress);
       setChainId(Number(currentChain));
-      await refreshDashboard(walletAddress);
-      setNotice({type: "success", text: "Wallet connected"});
+      if (walletAddress) {
+        await Promise.all([refreshDashboard(walletAddress), loadMyInvoices(walletAddress)]);
+        setNotice({type: "success", text: "Wallet connected"});
+      }
     } catch (error) {
       setNotice({type: "error", text: errorMessage(error)});
     }
-  }, [refreshDashboard]);
+  }, [loadMyInvoices, refreshDashboard]);
+
+  const disconnectWallet = useCallback(() => {
+    setAccount("");
+    setNativeBalance("—");
+    setTokenBalance("—");
+    setUsdcBalance("—");
+    setMyInvoices([]);
+    setNotice({type: "info", text: "Wallet disconnected"});
+  }, []);
+
+  const switchWallet = useCallback(async () => {
+    try {
+      if (!window.ethereum) throw new Error("Install MetaMask to continue");
+      await window.ethereum.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
+      const accounts = await window.ethereum.request({ method: "eth_accounts" });
+      const currentChain = await window.ethereum.request({ method: "eth_chainId" });
+      const walletAddress = accounts[0] || "";
+      setAccount(walletAddress);
+      setChainId(Number(currentChain));
+      if (walletAddress) {
+        await Promise.all([refreshDashboard(walletAddress), loadMyInvoices(walletAddress)]);
+        setNotice({type: "success", text: `Active account: ${shortAddress(walletAddress)}`});
+      }
+    } catch (error) {
+      if (error?.code !== 4001) {
+        setNotice({type: "error", text: errorMessage(error)});
+      }
+    }
+  }, [loadMyInvoices, refreshDashboard]);
 
   const switchNetwork = async () => {
     try {
@@ -597,28 +631,40 @@ function App() {
   };
 
 
+  const refreshDashboardRef = useRef(refreshDashboard);
+  refreshDashboardRef.current = refreshDashboard;
+  const loadMyInvoicesRef = useRef(loadMyInvoices);
+  loadMyInvoicesRef.current = loadMyInvoices;
+
   useEffect(() => {
     refreshDashboard().catch(() => setNextInvoiceId("—"));
     if (!window.ethereum) return undefined;
+
     const handleAccounts = (accounts) => {
-      setAccount(accounts[0] || "");
-      if (accounts[0]) {
-        refreshDashboard(accounts[0]);
-        loadMyInvoices(accounts[0]);
+      const nextAcc = accounts && accounts.length > 0 ? accounts[0] : "";
+      setAccount(nextAcc);
+      if (nextAcc) {
+        refreshDashboardRef.current(nextAcc);
+        loadMyInvoicesRef.current(nextAcc);
       } else {
         setMyInvoices([]);
+        setNativeBalance("—");
+        setTokenBalance("—");
+        setUsdcBalance("—");
       }
     };
     const handleChain = (value) => setChainId(Number(value));
+
     window.ethereum.on("accountsChanged", handleAccounts);
     window.ethereum.on("chainChanged", handleChain);
     window.ethereum.request({method: "eth_accounts"}).then(handleAccounts);
     window.ethereum.request({method: "eth_chainId"}).then(handleChain);
+
     return () => {
       window.ethereum.removeListener("accountsChanged", handleAccounts);
       window.ethereum.removeListener("chainChanged", handleChain);
     };
-  }, [loadMyInvoices, refreshDashboard]);
+  }, []);
 
   useEffect(() => {
     if (initialV2Id) {
@@ -702,7 +748,25 @@ function App() {
             <i /> {onCorrectChain ? "Pharos Atlantic live" : account ? "Wrong network (Switch)" : "Pharos Atlantic"}
           </span>
           {account ? (
-            <button className="wallet-button" type="button" onClick={connectWallet}>{shortAddress(account)}</button>
+            <div className="wallet-group">
+              <button
+                className="wallet-button"
+                type="button"
+                onClick={switchWallet}
+                title="Click to switch account in MetaMask"
+              >
+                {shortAddress(account)} ▾
+              </button>
+              <button
+                className="disconnect-btn"
+                type="button"
+                onClick={disconnectWallet}
+                title="Disconnect wallet"
+                aria-label="Disconnect wallet"
+              >
+                ✕
+              </button>
+            </div>
           ) : (
             <button className="primary compact" type="button" onClick={connectWallet}>Connect wallet</button>
           )}
