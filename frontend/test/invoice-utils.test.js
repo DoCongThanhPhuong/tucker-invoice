@@ -8,6 +8,8 @@ import {
   v2InvoiceIdFromPath,
   v2InvoicePath,
   exportInvoicesToCSV,
+  getCachedInvoices,
+  saveCachedInvoices,
 } from "../src/invoice-utils.js";
 
 test("parses a shared invoice path", () => {
@@ -66,5 +68,27 @@ test("exports invoices to CSV properly", () => {
   const csv = exportInvoicesToCSV(mockInvoices);
   assert.ok(csv.includes("Invoice ID,Version,Status,Token,Amount,Merchant,Payer,Due Date (UTC),Reference Hash"));
   assert.ok(csv.includes('"1","V2","Paid","USDC","50.0","0x1111111111111111111111111111111111111111","0x2222222222222222222222222222222222222222"'));
+});
+
+test("handles getCachedInvoices and saveCachedInvoices gracefully", () => {
+  assert.equal(getCachedInvoices("0x123"), null);
+  assert.doesNotThrow(() => saveCachedInvoices("0x123", []));
+
+  const storage = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem: (k) => storage.get(k) || null,
+      setItem: (k, v) => storage.set(k, v),
+    },
+  };
+
+  const invs = [{id: 10n, amount: 100n, version: "v2"}];
+  saveCachedInvoices("0xABC", invs);
+  const loaded = getCachedInvoices("0xABC");
+  assert.equal(loaded.length, 1);
+  assert.equal(loaded[0].id, 10n);
+  assert.equal(loaded[0].amount, 100n);
+
+  delete globalThis.window;
 });
 

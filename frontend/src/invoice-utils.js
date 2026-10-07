@@ -92,3 +92,27 @@ export function downloadInvoicesCSV(invoices = [], filename = "tucker-invoices.c
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+const CACHE_PREFIX = "tucker_invoice_cache_";
+
+export function getCachedInvoices(account) {
+  if (!account || typeof window === "undefined" || !window.localStorage) return null;
+  try {
+    const raw = window.localStorage.getItem(`${CACHE_PREFIX}${account.toLowerCase()}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.items)
+      ? parsed.items.map((i) => ({ ...i, id: BigInt(i.id), amount: BigInt(i.amount) }))
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveCachedInvoices(account, invoices) {
+  if (!account || !Array.isArray(invoices) || typeof window === "undefined" || !window.localStorage) return;
+  try {
+    const items = invoices.map((i) => ({ ...i, id: i.id.toString(), amount: i.amount.toString() }));
+    window.localStorage.setItem(`${CACHE_PREFIX}${account.toLowerCase()}`, JSON.stringify({ timestamp: Date.now(), items }));
+  } catch {}
+}

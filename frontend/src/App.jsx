@@ -25,8 +25,9 @@ import {
   textToReferenceHash,
   v2InvoiceIdFromPath,
   v2InvoicePath,
+  getCachedInvoices,
+  saveCachedInvoices,
 } from "./invoice-utils.js";
-import {getCachedInvoices, saveCachedInvoices} from "./invoice-cache.js";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
