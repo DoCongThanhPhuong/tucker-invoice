@@ -28,6 +28,9 @@ contract SimulateMultiWalletLifecycle is Script {
 
         // 2. Mint test MockUSDC
         if (usdcAddress != address(0)) {
+            if (IERC20(usdcAddress).balanceOf(broadcaster) < 200 * 10 ** 6) {
+                MockUSDC(usdcAddress).mint(broadcaster, 1000 * 10 ** 6);
+            }
             MockUSDC(usdcAddress).mint(WALLET_C, 1000 * 10 ** 6);
             MockUSDC(usdcAddress).mint(WALLET_D, 500 * 10 ** 6);
         }
