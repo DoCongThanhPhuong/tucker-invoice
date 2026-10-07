@@ -32,7 +32,7 @@ jobs:
         run: forge build --sizes
 
       - name: Run Forge tests
-        run: forge test -vvv
+        run: forge test -vvv -j 1
 
   frontend:
     name: Frontend React app
@@ -60,3 +60,25 @@ jobs:
       - name: Build frontend distribution bundle
         run: npm run build
         working-directory: frontend
+
+  services-and-sdk:
+    name: Services & SDK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Indexer tests
+        run: node --test services/indexer/indexer.test.js
+
+      - name: Run Notifier tests
+        run: node --test services/notifier/notifier.test.js
+
+      - name: Run SDK tests
+        run: node --test packages/sdk/test/sdk.test.js

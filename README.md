@@ -11,10 +11,10 @@ Tucker Invoice is a token-based invoicing dApp running on Pharos Atlantic Testne
 | Contract | Address | Status |
 | --- | --- | --- |
 | TuckerBuilderToken (TBT) | [`0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5`](https://atlantic.pharosscan.xyz/address/0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5) | Verified |
-| MockUSDC (USDC) | [`0x91a487BfAC67b3CF39F51425f762510dCb196026`](https://atlantic.pharosscan.xyz/address/0x91a487BfAC67b3CF39F51425f762510dCb196026) | Deployed |
+| MockUSDC (USDC) | [`0x91a487BfAC67b3CF39F51425f762510dCb196026`](https://atlantic.pharosscan.xyz/address/0x91a487BfAC67b3CF39F51425f762510dCb196026) | Verified |
 | InvoiceManager | [`0x5a95783b6f19841E79c4Bb506981310661a4cc7d`](https://atlantic.pharosscan.xyz/address/0x5a95783b6f19841E79c4Bb506981310661a4cc7d) | Verified |
-| InvoiceManagerV2 | [`0xB4f7A4dA6eD75033E25231bd43D9A207797391f6`](https://atlantic.pharosscan.xyz/address/0xB4f7A4dA6eD75033E25231bd43D9A207797391f6) | Deployed |
-| TBTFaucet | [`0x0A159a3B65802Ee7fDbaD92Bb76B142c9aCe5c2e`](https://atlantic.pharosscan.xyz/address/0x0A159a3B65802Ee7fDbaD92Bb76B142c9aCe5c2e) | Deployed |
+| InvoiceManagerV2 | [`0xB4f7A4dA6eD75033E25231bd43D9A207797391f6`](https://atlantic.pharosscan.xyz/address/0xB4f7A4dA6eD75033E25231bd43D9A207797391f6) | Verified |
+| TBTFaucet | [`0x0A159a3B65802Ee7fDbaD92Bb76B142c9aCe5c2e`](https://atlantic.pharosscan.xyz/address/0x0A159a3B65802Ee7fDbaD92Bb76B142c9aCe5c2e) | Verified |
 
 Network configuration:
 

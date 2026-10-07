@@ -70,6 +70,11 @@ export const ERC20_ABI = [
 export const USDC_ADDRESS =
   import.meta.env.VITE_USDC_ADDRESS || "0x91a487BfAC67b3CF39F51425f762510dCb196026";
 
+export const MOCK_USDC_ABI = [
+  ...ERC20_ABI,
+  "function mint(address to, uint256 amount)",
+];
+
 export const DEFAULT_V2_TOKENS = [
   {
     symbol: "TBT",

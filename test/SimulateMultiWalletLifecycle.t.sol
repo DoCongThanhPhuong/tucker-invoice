@@ -2,26 +2,26 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
-import {SimulateLifecycle} from "../script/SimulateLifecycle.s.sol";
+import {SimulateMultiWalletLifecycle} from "../script/SimulateMultiWalletLifecycle.s.sol";
 import {InvoiceManagerV2} from "../src/InvoiceManagerV2.sol";
 import {TuckerBuilderToken} from "../src/TuckerBuilderToken.sol";
 import {MockUSDC} from "../src/MockUSDC.sol";
 
-contract SimulateLifecycleTest is Test {
-    SimulateLifecycle internal script;
+contract SimulateMultiWalletLifecycleTest is Test {
+    SimulateMultiWalletLifecycle internal script;
     InvoiceManagerV2 internal manager;
     TuckerBuilderToken internal tbt;
     MockUSDC internal usdc;
     address internal defaultBroadcaster = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
 
     function setUp() public {
-        script = new SimulateLifecycle();
+        script = new SimulateMultiWalletLifecycle();
 
         tbt = new TuckerBuilderToken();
         usdc = new MockUSDC();
 
-        tbt.transfer(defaultBroadcaster, 50 ether);
-        usdc.transfer(defaultBroadcaster, 500 * 10 ** 6);
+        tbt.transfer(defaultBroadcaster, 100 ether);
+        usdc.transfer(defaultBroadcaster, 1000 * 10 ** 6);
 
         address[] memory tokens = new address[](2);
         tokens[0] = address(tbt);
@@ -37,25 +37,37 @@ contract SimulateLifecycleTest is Test {
     function tearDown() public {
         vm.setEnv("INVOICE_MANAGER_V2_ADDRESS", vm.toString(address(0xB4f7A4dA6eD75033E25231bd43D9A207797391f6)));
         vm.setEnv("TBT_ADDRESS", vm.toString(address(0x326b07d3e36c1Aa6213368E5e1AaDa29f2CB4BE5)));
-        vm.setEnv("USDC_ADDRESS", vm.toString(address(0)));
+        vm.setEnv("USDC_ADDRESS", vm.toString(address(0x91a487BfAC67b3CF39F51425f762510dCb196026)));
     }
 
-    function test_RunSimulatesFullLifecycle() public {
+    function test_RunSimulatesMultiWalletLifecycle() public {
         script.run();
 
-        // 1 settled TBT, 1 cancelled TBT, 3 open TBT, 1 settled USDC, 1 open USDC = 7 invoices
-        assertEq(manager.nextInvoiceId(), 7);
+        // 6 invoices created:
+        // 0: TBT settled
+        // 1: TBT cancelled
+        // 2: USDC settled
+        // 3: USDC open (Agency C)
+        // 4: USDC open (Client D)
+        // 5: TBT open (Pilot B)
+        assertEq(manager.nextInvoiceId(), 6);
 
-        // Check invoice 0 (settled TBT)
         (,,,,,, InvoiceManagerV2.InvoiceStatus status0) = manager.invoices(0);
         assertEq(uint8(status0), uint8(InvoiceManagerV2.InvoiceStatus.Paid));
 
-        // Check invoice 1 (cancelled TBT)
         (,,,,,, InvoiceManagerV2.InvoiceStatus status1) = manager.invoices(1);
         assertEq(uint8(status1), uint8(InvoiceManagerV2.InvoiceStatus.Cancelled));
 
-        // Check invoice 5 (settled USDC)
-        (,,,,,, InvoiceManagerV2.InvoiceStatus status5) = manager.invoices(5);
-        assertEq(uint8(status5), uint8(InvoiceManagerV2.InvoiceStatus.Paid));
+        // Invoice 2: TBT open for Wallet B
+        (,,,,,, InvoiceManagerV2.InvoiceStatus status2) = manager.invoices(2);
+        assertEq(uint8(status2), uint8(InvoiceManagerV2.InvoiceStatus.Open));
+
+        // Invoice 3: USDC settled
+        (,,,,,, InvoiceManagerV2.InvoiceStatus status3) = manager.invoices(3);
+        assertEq(uint8(status3), uint8(InvoiceManagerV2.InvoiceStatus.Paid));
+
+        // Invoice 4: USDC open for Agency C
+        (,,,,,, InvoiceManagerV2.InvoiceStatus status4) = manager.invoices(4);
+        assertEq(uint8(status4), uint8(InvoiceManagerV2.InvoiceStatus.Open));
     }
 }

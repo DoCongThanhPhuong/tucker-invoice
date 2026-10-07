@@ -9,3 +9,4 @@ Initial Supply: 1000000000000
 Deployment Tx: 0x3a22bf82889a1e3b404228a9fbba5189dba40bfa7afd14f6d9d5b2aebe66cc35
 Deployment Block: 31066173
 Allowed on V2: yes (Tx: 0xb7d247a111f2f013ac939730c10450f672416375f81e7cff744156255f798f26)
+Verified: yes

@@ -7,6 +7,7 @@ import {
   textToReferenceHash,
   v2InvoiceIdFromPath,
   v2InvoicePath,
+  exportInvoicesToCSV,
 } from "../src/invoice-utils.js";
 
 test("parses a shared invoice path", () => {
@@ -45,5 +46,25 @@ test("generates deterministic bytes32 reference hash", () => {
   assert.equal(hash1, hash2);
   assert.equal(hash1, "0xae5c05cbcf519c82718c76f0df46d5f0842ae124ac650b97f3e6bb0924900bb8");
   assert.equal(hash1.length, 66); // 0x + 64 hex chars
+});
+
+test("exports invoices to CSV properly", () => {
+  const mockInvoices = [
+    {
+      id: 1n,
+      version: "v2",
+      derivedStatus: "Paid",
+      tokenSymbol: "USDC",
+      tokenDecimals: 6,
+      amount: 50000000n, // 50 USDC
+      merchant: "0x1111111111111111111111111111111111111111",
+      payer: "0x2222222222222222222222222222222222222222",
+      dueDate: 1780000000,
+      referenceHash: "0x1234",
+    },
+  ];
+  const csv = exportInvoicesToCSV(mockInvoices);
+  assert.ok(csv.includes("Invoice ID,Version,Status,Token,Amount,Merchant,Payer,Due Date (UTC),Reference Hash"));
+  assert.ok(csv.includes('"1","V2","Paid","USDC","50.0","0x1111111111111111111111111111111111111111","0x2222222222222222222222222222222222222222"'));
 });
 

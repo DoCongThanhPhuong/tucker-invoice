@@ -22,6 +22,7 @@ contract SimulateActivityTest is Test {
         activityScript = new SimulateActivity();
 
         vm.setEnv("INVOICE_MANAGER_V2_ADDRESS", vm.toString(address(manager)));
+        vm.setEnv("TBT_ADDRESS", vm.toString(address(token)));
         vm.setEnv("ACTIVITY_TOKEN_ADDRESS", vm.toString(address(token)));
         vm.setEnv("ACTIVITY_PAYER", vm.toString(payer));
         vm.setEnv("ACTIVITY_COUNT", "3");

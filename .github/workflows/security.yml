@@ -1,0 +1,36 @@
+name: Security & Static Analysis
+
+permissions: {}
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  slither-analysis:
+    name: Slither Static Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Slither
+        run: pip3 install slither-analyzer solc-select && solc-select install 0.8.20 && solc-select use 0.8.20
+
+      - name: Run Slither Analysis
+        run: slither . --exclude-dependencies --exclude-informational --exclude-low || true

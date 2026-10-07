@@ -1,0 +1,21 @@
+{
+  "name": "@tucker-invoice/sdk",
+  "version": "0.1.0",
+  "description": "JavaScript/TypeScript SDK for Tucker Invoice protocol on Pharos Atlantic",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/types.d.ts",
+  "scripts": {
+    "test": "node --test test/sdk.test.js"
+  },
+  "keywords": [
+    "pharos",
+    "invoice",
+    "web3",
+    "rwa",
+    "payment",
+    "sdk"
+  ],
+  "author": "Tucker",
+  "license": "MIT"
+}

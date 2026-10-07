@@ -9,3 +9,4 @@ Deployment Block: 31065491
 Initial Funding: 10000 TBT
 Funding Tx: 0xfb87b77dcfab7b65e4196c1a9cbd2a6a74e9522c85fd385b7446e2d2aff5ff51
 Claim Amount: 100 TBT per day
+Verified: yes

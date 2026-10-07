@@ -8,21 +8,25 @@ import {
   INVOICE_MANAGER_ADDRESS,
   INVOICE_MANAGER_V2_ABI,
   INVOICE_MANAGER_V2_ADDRESS,
+  MOCK_USDC_ABI,
   PHAROS_CHAIN_HEX,
   PHAROS_CHAIN_ID,
   PHAROS_RPC_URL,
   TBT_ADDRESS,
   TBT_FAUCET_ABI,
   TBT_FAUCET_ADDRESS,
+  USDC_ADDRESS,
 } from "./contracts.js";
 import {
   deriveV2InvoiceStatus,
+  downloadInvoicesCSV,
   invoiceIdFromPath,
   invoicePath,
   textToReferenceHash,
   v2InvoiceIdFromPath,
   v2InvoicePath,
 } from "./invoice-utils.js";
+import {getCachedInvoices, saveCachedInvoices} from "./invoice-cache.js";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -66,6 +70,7 @@ function App() {
   const [chainId, setChainId] = useState(null);
   const [nativeBalance, setNativeBalance] = useState("—");
   const [tokenBalance, setTokenBalance] = useState("—");
+  const [usdcBalance, setUsdcBalance] = useState("—");
   const [nextInvoiceId, setNextInvoiceId] = useState("—");
 
   // Creation form state
@@ -162,13 +167,18 @@ function App() {
         const faucetContract = TBT_FAUCET_ADDRESS
           ? new Contract(TBT_FAUCET_ADDRESS, TBT_FAUCET_ABI, readProvider)
           : null;
-        const [phrs, tbt, lastClaim] = await Promise.all([
+        const usdcContract = USDC_ADDRESS
+          ? new Contract(USDC_ADDRESS, ERC20_ABI, readProvider)
+          : null;
+        const [phrs, tbt, usdcBal, lastClaim] = await Promise.all([
           readProvider.getBalance(walletAddress),
           token.balanceOf(walletAddress),
+          usdcContract ? usdcContract.balanceOf(walletAddress).catch(() => 0n) : Promise.resolve(0n),
           faucetContract ? faucetContract.lastClaimTime(walletAddress).catch(() => 0n) : Promise.resolve(0n),
         ]);
         setNativeBalance(Number(formatEther(phrs)).toFixed(4));
         setTokenBalance(Number(formatUnits(tbt, decimals)).toLocaleString(undefined, {maximumFractionDigits: 4}));
+        setUsdcBalance(Number(formatUnits(usdcBal, 6)).toLocaleString(undefined, {maximumFractionDigits: 2}));
         const lastClaimSec = Number(lastClaim);
         const nowSec = Math.floor(Date.now() / 1000);
         const isCooldown = lastClaimSec > 0 && nowSec < lastClaimSec + 86400;
@@ -191,6 +201,10 @@ function App() {
     if (!walletAddress) {
       setMyInvoices([]);
       return;
+    }
+    const cached = getCachedInvoices(walletAddress);
+    if (cached && cached.length > 0) {
+      setMyInvoices(cached);
     }
     try {
       setMyInvoicesBusy(true);
@@ -266,7 +280,9 @@ function App() {
         items.push(...v2Items);
       }
 
-      setMyInvoices(items.sort((a, b) => Number(b.id) - Number(a.id)));
+      const sorted = items.sort((a, b) => Number(b.id) - Number(a.id));
+      setMyInvoices(sorted);
+      saveCachedInvoices(walletAddress, sorted);
     } catch (error) {
       setMyInvoicesError(errorMessage(error));
     } finally {
@@ -536,6 +552,27 @@ function App() {
     }
   };
 
+  const [usdcBusy, setUsdcBusy] = useState(false);
+
+  const claimMockUsdc = async () => {
+    if (!account) return setNotice({type: "error", text: "Connect wallet first"});
+    if (!USDC_ADDRESS) return setNotice({type: "error", text: "MockUSDC address not configured"});
+    try {
+      setUsdcBusy(true);
+      const signer = await getSigner();
+      const usdc = new Contract(USDC_ADDRESS, MOCK_USDC_ABI, signer);
+      const tx = await usdc.mint(account, parseUnits("1000", 6));
+      setNotice({type: "info", text: "Minting 1,000 MockUSDC submitted…"});
+      await tx.wait();
+      setNotice({type: "success", text: "Minted 1,000 MockUSDC successfully!"});
+      await refreshDashboard(account);
+    } catch (error) {
+      setNotice({type: "error", text: errorMessage(error)});
+    } finally {
+      setUsdcBusy(false);
+    }
+  };
+
 
   useEffect(() => {
     refreshDashboard().catch(() => setNextInvoiceId("—"));
@@ -686,6 +723,23 @@ function App() {
             )}
           </div>
           <strong>{maskNetworkData ? "—" : tokenBalance} {!maskNetworkData && <small>TBT</small>}</strong>
+        </div>
+        <div>
+          <div className="stat-card-header">
+            <span>Your USDC balance</span>
+            {USDC_ADDRESS && !maskNetworkData && (
+              <button
+                className="faucet-badge-btn"
+                type="button"
+                onClick={claimMockUsdc}
+                disabled={usdcBusy}
+                title="Mint 1,000 testnet MockUSDC"
+              >
+                {usdcBusy ? "Minting…" : "＋ Mint 1,000 USDC"}
+              </button>
+            )}
+          </div>
+          <strong>{maskNetworkData ? "—" : usdcBalance} {!maskNetworkData && <small>USDC</small>}</strong>
         </div>
         <div><span>Gas balance</span><strong>{maskNetworkData ? "—" : nativeBalance} {!maskNetworkData && <small>PHRS</small>}</strong></div>
         <div><span>Total Invoiced</span><strong>{maskNetworkData ? "—" : `${dashboardMetrics.totalInvoiced} TBT`}</strong></div>
@@ -875,9 +929,20 @@ function App() {
                 <p className="eyebrow">Receivables & Settlement Activity</p>
                 <h3 id="my-invoices-title">On-chain Invoice Ledger</h3>
               </div>
-              <button className="secondary compact" type="button" onClick={() => loadMyInvoices(account)} disabled={myInvoicesBusy}>
-                {myInvoicesBusy ? "Refreshing…" : "Refresh Ledger"}
-              </button>
+              <div style={{display: "flex", gap: "8px", flexWrap: "wrap"}}>
+                <button
+                  className="secondary compact"
+                  type="button"
+                  onClick={() => downloadInvoicesCSV(filteredInvoices, `tucker-invoices-${account.slice(0, 6)}.csv`)}
+                  disabled={filteredInvoices.length === 0}
+                  title="Export filtered invoices to CSV"
+                >
+                  Export CSV
+                </button>
+                <button className="secondary compact" type="button" onClick={() => loadMyInvoices(account)} disabled={myInvoicesBusy}>
+                  {myInvoicesBusy ? "Refreshing…" : "Refresh Ledger"}
+                </button>
+              </div>
             </div>
 
             <div className="filter-tab-bar">
