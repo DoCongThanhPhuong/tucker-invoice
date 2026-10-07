@@ -43,6 +43,9 @@ function errorMessage(error) {
   if (error?.errorName === "CooldownActive" || errStr.includes("c1ab61a1") || errStr.includes("CooldownActive")) {
     return "Faucet cooldown is active (1 claim per 24 hours). Next claim available tomorrow.";
   }
+  if (errStr.includes("TX_OVER_SIZE")) {
+    return "Pharos Atlantic rejected transaction format (TX_OVER_SIZE). Please retry with Legacy gas in MetaMask.";
+  }
   if (error?.errorName === "InsufficientFaucetBalance" || errStr.includes("InsufficientFaucetBalance")) {
     return "Faucet balance is insufficient.";
   }
@@ -126,6 +129,18 @@ function App() {
     const provider = new BrowserProvider(window.ethereum);
     return provider.getSigner();
   }, []);
+
+  const getTxOverrides = useCallback(async () => {
+    try {
+      const feeData = await readProvider.getFeeData();
+      return {
+        type: 0,
+        gasPrice: feeData?.gasPrice || 10000000000n,
+      };
+    } catch {
+      return { type: 0 };
+    }
+  }, [readProvider]);
 
   // Fetch token metadata on-chain
   const loadTokenMetadata = useCallback(async (tokenAddress) => {
@@ -353,7 +368,8 @@ function App() {
         const refHash = textToReferenceHash(customReference);
         const parsedAmt = parseUnits(amount, tokenMeta.decimals);
 
-        const tx = await manager.createInvoice(payer, selectedTokenAddress, parsedAmt, dueTimestamp, refHash);
+        const overrides = await getTxOverrides();
+        const tx = await manager.createInvoice(payer, selectedTokenAddress, parsedAmt, dueTimestamp, refHash, overrides);
         setNotice({type: "pending", text: "Creating V2 invoice on Pharos…", hash: tx.hash});
         const receipt = await tx.wait();
         const createdLog = receipt.logs
@@ -363,8 +379,9 @@ function App() {
         if (createdId !== undefined) setInvoiceSearch(createdId);
         setNotice({type: "success", text: `V2 Invoice #${createdId ?? ""} created`, hash: tx.hash});
       } else {
+        const overrides = await getTxOverrides();
         const manager = new Contract(INVOICE_MANAGER_ADDRESS, INVOICE_MANAGER_ABI, signer);
-        const tx = await manager.createInvoice(payer, parseUnits(amount, 18));
+        const tx = await manager.createInvoice(payer, parseUnits(amount, 18), overrides);
         setNotice({type: "pending", text: "Creating V1 invoice…", hash: tx.hash});
         const receipt = await tx.wait();
         const createdLog = receipt.logs
@@ -472,9 +489,10 @@ function App() {
     try {
       setBusy("approve");
       const signer = await getSigner();
+      const overrides = await getTxOverrides();
       const spender = invoice.version === "v2" ? INVOICE_MANAGER_V2_ADDRESS : INVOICE_MANAGER_ADDRESS;
       const token = new Contract(invoice.paymentToken, ERC20_ABI, signer);
-      const tx = await token.approve(spender, invoice.amount);
+      const tx = await token.approve(spender, invoice.amount, overrides);
       setNotice({type: "pending", text: `Approving ${invoice.tokenSymbol} allowance…`, hash: tx.hash});
       await tx.wait();
       setNotice({type: "success", text: `${invoice.tokenSymbol} approved`, hash: tx.hash});
@@ -490,15 +508,16 @@ function App() {
     try {
       setBusy("pay");
       const signer = await getSigner();
+      const overrides = await getTxOverrides();
       if (invoice.version === "v2") {
         const manager = new Contract(INVOICE_MANAGER_V2_ADDRESS, INVOICE_MANAGER_V2_ABI, signer);
-        const tx = await manager.payInvoice(invoice.id);
+        const tx = await manager.payInvoice(invoice.id, overrides);
         setNotice({type: "pending", text: `Paying V2 invoice #${invoice.id}…`, hash: tx.hash});
         await tx.wait();
         setNotice({type: "success", text: `V2 Invoice #${invoice.id} paid cleanly`, hash: tx.hash});
       } else {
         const manager = new Contract(INVOICE_MANAGER_ADDRESS, INVOICE_MANAGER_ABI, signer);
-        const tx = await manager.payInvoice(invoice.id);
+        const tx = await manager.payInvoice(invoice.id, overrides);
         setNotice({type: "pending", text: `Paying V1 invoice #${invoice.id}…`, hash: tx.hash});
         await tx.wait();
         setNotice({type: "success", text: `V1 Invoice #${invoice.id} paid`, hash: tx.hash});
@@ -515,8 +534,9 @@ function App() {
     try {
       setBusy("cancel");
       const signer = await getSigner();
+      const overrides = await getTxOverrides();
       const manager = new Contract(INVOICE_MANAGER_V2_ADDRESS, INVOICE_MANAGER_V2_ABI, signer);
-      const tx = await manager.cancelInvoice(invoice.id);
+      const tx = await manager.cancelInvoice(invoice.id, overrides);
       setNotice({type: "pending", text: `Cancelling invoice #${invoice.id}…`, hash: tx.hash});
       await tx.wait();
       setNotice({type: "success", text: `Invoice #${invoice.id} cancelled`, hash: tx.hash});
@@ -540,8 +560,9 @@ function App() {
     try {
       setClaimBusy(true);
       const signer = await getSigner();
+      const overrides = await getTxOverrides();
       const faucet = new Contract(TBT_FAUCET_ADDRESS, TBT_FAUCET_ABI, signer);
-      const tx = await faucet.claim();
+      const tx = await faucet.claim(overrides);
       setNotice({type: "info", text: "Faucet claim submitted…"});
       await tx.wait();
       setNotice({type: "success", text: "Claimed 100 TBT successfully!"});
@@ -561,8 +582,9 @@ function App() {
     try {
       setUsdcBusy(true);
       const signer = await getSigner();
+      const overrides = await getTxOverrides();
       const usdc = new Contract(USDC_ADDRESS, MOCK_USDC_ABI, signer);
-      const tx = await usdc.mint(account, parseUnits("1000", 6));
+      const tx = await usdc.mint(account, parseUnits("1000", 6), overrides);
       setNotice({type: "info", text: "Minting 1,000 MockUSDC submitted…"});
       await tx.wait();
       setNotice({type: "success", text: "Minted 1,000 MockUSDC successfully!"});
