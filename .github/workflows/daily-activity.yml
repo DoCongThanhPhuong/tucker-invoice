@@ -22,6 +22,8 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.7.1
 
       - name: Run Multi-Wallet Simulation Broadcast
         env:
@@ -39,5 +41,5 @@ jobs:
             --rpc-url "$RPC_URL" \
             --private-key "$DEPLOYER_PRIVATE_KEY" \
             --broadcast \
-            --slow \
+            --legacy \
             -vvv

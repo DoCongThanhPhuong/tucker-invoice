@@ -36,7 +36,9 @@ contract SimulateMultiWalletLifecycle is Script {
         }
 
         // 3. TBT lifecycle
-        _executeTbtLifecycle(manager, broadcaster, tbtAddress);
+        if (IERC20(tbtAddress).balanceOf(broadcaster) >= 15 ether) {
+            _executeTbtLifecycle(manager, broadcaster, tbtAddress);
+        }
 
         // 4. USDC lifecycle
         if (usdcAddress != address(0) && manager.supportedPaymentTokens(usdcAddress)) {
